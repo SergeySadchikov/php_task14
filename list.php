@@ -13,7 +13,7 @@ $errors = "";
 $username = 'sadchikov';
 $password = 'neto1734';
 $db = new PDO('mysql:host=localhost;dbname=sadchikov;charset=utf8', $username, $password);
-$select = "SELECT t.id as task_id, t.description as description, u.id as author_id, u.login as author_name, au.id as assigned_user_id, au.login as assigned_user_name, t.is_done as is_done, t.date_added as date_added FROM task t INNER JOIN user u ON u.id=t.user_id INNER JOIN user au ON t.assigned_user_id=au.id";
+
 //add
 if (isset($_POST['save'])) {
         $desc = $_POST['description'];
@@ -28,6 +28,7 @@ if (isset($_POST['save'])) {
             $user = $currentUser->fetch();
             $addPrep = $db->prepare("INSERT INTO task (description, is_done, date_added, user_id, assigned_user_id) VALUES (?, ?, CURRENT_TIMESTAMP, ?, ?)");
             $addPrep->execute([$desc, false, $user['id'], $user['id']]);
+            header('Location:list.php');
         }
     }   
 
@@ -127,9 +128,10 @@ if (isset($_POST['assign'])) {
         <th>Закрепить задачу за другим пользователем</th>
     </tr>
     <?php
-    $result = $db->query($select);
+    $select = "SELECT t.id as task_id, t.description as description, u.id as author_id, u.login as author_name, au.id as assigned_user_id, au.login as assigned_user_name, t.is_done as is_done, t.date_added as date_added FROM task t INNER JOIN user u ON u.id=t.user_id INNER JOIN user au ON t.assigned_user_id=au.id WHERE u.login = ?";
+    $result = $db->prepare($select);
+    $result->execute([$login]);
     while ($row = $result->fetch()) {
-        if ($login == $row['author_name']) {
      ?>
     <tr>
         <td><?php echo $row['description']; ?></td>
@@ -167,7 +169,7 @@ if (isset($_POST['assign'])) {
             </form>
         </td>
     </tr>
-    <?php } } ?>
+    <?php  } ?>
 </table>
 
 <h2>Также, посмотрите, что от Вас требуют другие люди:</h2>
@@ -181,10 +183,11 @@ if (isset($_POST['assign'])) {
         <th>Автор</th>
     </tr>
 
-<?php 
-$result = $db->query($select);
+<?php
+$select = "SELECT t.id as task_id, t.description as description, u.id as author_id, u.login as author_name, au.id as assigned_user_id, au.login as assigned_user_name, t.is_done as is_done, t.date_added as date_added FROM task t INNER JOIN user u ON u.id=t.user_id INNER JOIN user au ON t.assigned_user_id=au.id WHERE au.login = ? AND u.login <> ?";
+$result = $db->prepare($select);
+$result->execute([$login, $login]);
 while ($row = $result->fetch()) {
-    if ($login == $row['assigned_user_name'] && $login !== $row['author_name']) {
 ?>
 <tr>
     <td><?php echo $row['description'];?></td>
@@ -207,10 +210,7 @@ while ($row = $result->fetch()) {
         <td><?php echo $row['assigned_user_name']; ?></td>
         <td><?php echo $row['author_name']; ?></td>
 </tr>
-<?php 
-    }
-}
- ?>     
+<?php } ?>     
 </table>
 
 <a href="logout.php">Выйти</a>
